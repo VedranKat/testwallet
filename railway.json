@@ -1,12 +1,7 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "mvn -B -DskipTests clean package"
-  },
-  "deploy": {
-    "startCommand": "java -Dserver.port=$PORT -jar app.jar",
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   }
 }
