@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EU Wallet Login</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div>
+        <p class="eyebrow">OID4VP direct_post</p>
+        <h1>Log in with EU Wallet</h1>
+    </div>
+    <nav class="nav-actions">
+        <a href="/">Dashboard</a>
+        <a href="/login">Dummy login</a>
+    </nav>
+</header>
+<main class="container">
+    <section class="band">
+        <div>
+            <h2>Create a wallet login QR</h2>
+            <p class="muted">The request object and direct_post endpoint use the configured public base URL.</p>
+        </div>
+        <form th:action="@{/oid4vp/sessions}" method="post" class="create-form">
+            <label class="checkbox">
+                <input type="checkbox" name="includeNationality" th:checked="${properties.includeNationality}">
+                Request nationality
+            </label>
+            <button type="submit">Generate QR</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

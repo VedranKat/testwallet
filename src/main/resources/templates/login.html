@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | EUDI PID QR Generator</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="auth-page">
+<main class="auth-shell">
+    <section class="auth-panel">
+        <p class="eyebrow">Demo-only local tool</p>
+        <h1>EUDI PID QR Generator</h1>
+        <p class="muted">Sign in to manage demo certificates and QR login setup.</p>
+        <form th:action="@{/login}" method="post" class="stack">
+            <label>
+                Username
+                <input name="username" autocomplete="username" required autofocus>
+            </label>
+            <label>
+                Password
+                <input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <button type="submit">Sign in</button>
+            <p th:if="${param.error}" class="error">Invalid demo credentials.</p>
+            <p th:if="${param.logout}" class="muted">You have been signed out.</p>
+            <p class="muted">Demo credentials: <code>demo / demo</code></p>
+        </form>
+    </section>
+</main>
+</body>
+</html>

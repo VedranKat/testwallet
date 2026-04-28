@@ -1,0 +1,8 @@
+target/
+.idea/
+.codex/
+*.iml
+.DS_Store
+
+# Demo-only generated certificate material. Use env vars for stable Railway certs.
+certs/

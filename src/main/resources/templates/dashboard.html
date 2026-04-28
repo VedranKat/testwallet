@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EUDI PID Demo</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div>
+        <p class="eyebrow">Railway-ready Spring Boot demo</p>
+        <h1>EUDI Wallet PID login</h1>
+    </div>
+    <nav class="nav-actions">
+        <a href="/wallet-login">EU Wallet login</a>
+        <a href="/profile" th:if="${authentication != null && authentication.authenticated}">Profile</a>
+        <a href="/certificates" th:if="${authentication != null && authentication.authenticated}">Certificates</a>
+        <a href="/login" th:unless="${authentication != null && authentication.authenticated}">Dummy login</a>
+        <form th:action="@{/logout}" method="post" th:if="${authentication != null && authentication.authenticated}">
+            <button class="secondary" type="submit">Sign out</button>
+        </form>
+    </nav>
+</header>
+
+<main class="container">
+    <section class="band">
+        <div>
+            <h2>Start a PID-based mobile wallet login</h2>
+            <p class="muted">The QR points to this app's public request-object endpoint and the wallet posts back to this same app.</p>
+        </div>
+        <form th:action="@{/oid4vp/sessions}" method="post" class="create-form">
+            <label class="checkbox">
+                <input type="checkbox" name="includeNationality" th:checked="${properties.includeNationality}">
+                Request nationality
+            </label>
+            <button type="submit">Log in with EU Wallet</button>
+        </form>
+    </section>
+
+    <section class="details-grid">
+        <div>
+            <h3>Public base URL</h3>
+            <code th:text="${properties.publicBaseUrl}"></code>
+        </div>
+        <div>
+            <h3>Direct post endpoint</h3>
+            <code th:text="${properties.publicBaseUrl + '/oid4vp/direct_post'}"></code>
+        </div>
+        <div>
+            <h3>Client ID</h3>
+            <code th:text="${properties.clientId}"></code>
+        </div>
+        <div>
+            <h3>Setup</h3>
+            <a href="/certificates">Certificates</a>
+            <a href="/certs/jwks.json">JWKS</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

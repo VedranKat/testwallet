@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scan QR | EU Wallet Login</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <script th:inline="javascript">
+        const sessionId = /*[[${walletSession.id}]]*/ "";
+        async function pollStatus() {
+            const response = await fetch(`/oid4vp/sessions/${sessionId}/status`, {credentials: "same-origin"});
+            const status = await response.json();
+            document.getElementById("status").innerText = status.status;
+            if (status.status === "VERIFIED") {
+                window.location.href = "/profile";
+                return;
+            }
+            if (status.status === "FAILED" || status.status === "EXPIRED") {
+                document.getElementById("failure").innerText = status.failureReason || status.status;
+                return;
+            }
+            setTimeout(pollStatus, 1800);
+        }
+        window.addEventListener("load", pollStatus);
+        function copyText(id) {
+            navigator.clipboard.writeText(document.getElementById(id).innerText);
+        }
+    </script>
+</head>
+<body>
+<header class="topbar">
+    <div>
+        <p class="eyebrow">Wallet login session</p>
+        <h1>Scan with mobile wallet</h1>
+    </div>
+    <nav class="nav-actions">
+        <a href="/">Dashboard</a>
+        <a href="/certificates">Certificates</a>
+    </nav>
+</header>
+
+<main class="container request-layout">
+    <section class="qr-panel">
+        <img th:src="@{/oid4vp/sessions/{id}/qr(id=${walletSession.id})}" alt="OID4VP wallet login QR code">
+        <div class="meta-list">
+            <p><strong>Status</strong><code id="status" th:text="${walletSession.status}"></code></p>
+            <p><strong>State</strong><code th:text="${walletSession.state}"></code></p>
+            <p><strong>Nonce</strong><code th:text="${walletSession.nonce}"></code></p>
+            <p><strong>Response URI</strong><code th:text="${walletSession.responseUri}"></code></p>
+            <p><strong>Claims</strong><code th:text="${#strings.listJoin(walletSession.requestedClaims, ', ')}"></code></p>
+            <p id="failure" class="error"></p>
+        </div>
+    </section>
+
+    <section class="code-panel">
+        <div class="panel-heading">
+            <h2>QR URI</h2>
+            <button class="secondary" type="button" onclick="copyText('qrUri')">Copy</button>
+        </div>
+        <pre id="qrUri" th:text="${walletSession.qrUri}"></pre>
+
+        <div class="panel-heading">
+            <h2>Request URI</h2>
+            <a th:href="${walletSession.requestUri}">Open</a>
+        </div>
+        <pre th:text="${walletSession.requestUri}"></pre>
+
+        <div class="panel-heading">
+            <h2>Signed request object</h2>
+            <a th:href="@{/oid4vp/requests/{id}/object.jwt(id=${walletSession.id})}">Open JWT</a>
+        </div>
+        <pre th:text="${walletSession.signedRequestObject}"></pre>
+
+        <div class="panel-heading">
+            <h2>Decoded request payload</h2>
+            <a th:href="@{/oid4vp/requests/{id}/payload.json(id=${walletSession.id})}">Open JSON</a>
+        </div>
+        <pre th:text="${decodedPayload}"></pre>
+    </section>
+</main>
+</body>
+</html>

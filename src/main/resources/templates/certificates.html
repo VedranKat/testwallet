@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Certificates | EUDI PID Demo</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div>
+        <p class="eyebrow">Demo-only trust material</p>
+        <h1>Certificates</h1>
+    </div>
+    <nav class="nav-actions">
+        <a href="/">Dashboard</a>
+        <a href="/wallet-login">EU Wallet login</a>
+    </nav>
+</header>
+<main class="container">
+    <section class="band">
+        <div>
+            <h2>Download demo trust material</h2>
+            <p class="muted">These certificates are generated for local/demo use. Do not trust them in production.</p>
+        </div>
+        <div class="inline-actions">
+            <a class="button-link" href="/certs/root-ca.pem">Root CA</a>
+            <a class="button-link" href="/certs/client-cert.pem">Client cert</a>
+            <a class="button-link" href="/certs/jwks.json">JWKS</a>
+        </div>
+    </section>
+    <section class="details-grid">
+        <div>
+            <h3>Root CA endpoint</h3>
+            <code th:text="${properties.publicBaseUrl + '/certs/root-ca.pem'}"></code>
+        </div>
+        <div>
+            <h3>Client cert endpoint</h3>
+            <code th:text="${properties.publicBaseUrl + '/certs/client-cert.pem'}"></code>
+        </div>
+        <div>
+            <h3>JWKS endpoint</h3>
+            <code th:text="${properties.publicBaseUrl + '/certs/jwks.json'}"></code>
+        </div>
+        <div>
+            <h3>Storage</h3>
+            <code th:text="${properties.certificateOutputDir}"></code>
+        </div>
+    </section>
+</main>
+</body>
+</html>

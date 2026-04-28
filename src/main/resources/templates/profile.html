@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile | EUDI PID Demo</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div>
+        <p class="eyebrow">Authenticated session</p>
+        <h1>Profile</h1>
+    </div>
+    <nav class="nav-actions">
+        <a href="/">Dashboard</a>
+        <a href="/wallet-login">EU Wallet login</a>
+    </nav>
+</header>
+<main class="container">
+    <section class="band">
+        <div>
+            <h2 th:text="${authentication.name}">User</h2>
+            <p class="muted" th:text="${#strings.listJoin(authentication.authorities, ', ')}"></p>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <button class="secondary" type="submit">Sign out</button>
+        </form>
+    </section>
+
+    <section class="details-grid" th:if="${pidClaims != null}">
+        <div th:each="claim : ${pidClaims}">
+            <h3 th:text="${claim.key}"></h3>
+            <code th:text="${claim.value}"></code>
+        </div>
+    </section>
+
+    <section class="band" th:if="${pidClaims == null}">
+        <div>
+            <h2>Dummy login</h2>
+            <p class="muted">This session came from the username/password demo login, not a wallet PID presentation.</p>
+        </div>
+    </section>
+</main>
+</body>
+</html>
