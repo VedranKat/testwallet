@@ -1,0 +1,8 @@
+[variables]
+NIXPACKS_JDK_VERSION = "21"
+
+[phases.build]
+cmds = ["mvn -B -DskipTests clean package"]
+
+[start]
+cmd = "java -Dserver.port=$PORT -jar target/eudi-pid-qr-generator-0.0.1-SNAPSHOT.jar"
