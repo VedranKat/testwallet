@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.text.ParseException;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +31,9 @@ public class PresentationVerificationService {
             return PresentationVerificationResult.failed("Missing vp_token.");
         }
 
-        Map<String, Object> tokenClaims = parseVpToken(post.vpToken());
+        Map<String, Object> tokenClaims = parseVpToken(post.vpToken(), session);
         if (tokenClaims.isEmpty()) {
-            return PresentationVerificationResult.failed("Could not parse vp_token as JSON or JWT claims.");
+            return PresentationVerificationResult.failed("Could not parse vp_token as DCQL SD-JWT presentation, JSON, or JWT claims.");
         }
 
         Optional<Object> responseNonce = findValue(tokenClaims, "nonce");
@@ -50,12 +53,19 @@ public class PresentationVerificationService {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> parseVpToken(Object vpToken) {
+    private Map<String, Object> parseVpToken(Object vpToken, WalletLoginSession session) {
         try {
             if (vpToken instanceof Map<?, ?> map) {
+                Object queryResult = map.get("query_0");
+                if (queryResult instanceof List<?> presentations && !presentations.isEmpty()) {
+                    return parseSdJwtPresentation(String.valueOf(presentations.getFirst()), session);
+                }
                 return new LinkedHashMap<>((Map<String, Object>) map);
             }
             String serialized = String.valueOf(vpToken);
+            if (serialized.contains("~")) {
+                return parseSdJwtPresentation(serialized, session);
+            }
             if (serialized.trim().startsWith("{")) {
                 return objectMapper.readValue(serialized, new TypeReference<>() {
                 });
@@ -64,6 +74,61 @@ public class PresentationVerificationService {
         } catch (Exception ex) {
             return Map.of();
         }
+    }
+
+    private Map<String, Object> parseSdJwtPresentation(String presentation, WalletLoginSession session) throws Exception {
+        String[] parts = presentation.split("~", -1);
+        if (parts.length < 3) {
+            return Map.of();
+        }
+
+        String issuerJwt = parts[0];
+        String kbJwt = parts[parts.length - 1].isBlank() ? null : parts[parts.length - 1];
+        int disclosureEndExclusive = kbJwt == null ? parts.length : parts.length - 1;
+
+        Map<String, Object> claims = new LinkedHashMap<>();
+        for (int index = 1; index < disclosureEndExclusive; index++) {
+            if (parts[index].isBlank()) {
+                continue;
+            }
+            List<Object> disclosure = objectMapper.readValue(Base64.getUrlDecoder().decode(parts[index]), new TypeReference<>() {
+            });
+            if (disclosure.size() == 3 && disclosure.get(1) instanceof String claimName) {
+                claims.put(claimName, disclosure.get(2));
+            }
+        }
+
+        if (kbJwt != null) {
+            SignedJWT keyBinding = SignedJWT.parse(kbJwt);
+            Map<String, Object> kbClaims = keyBinding.getJWTClaimsSet().getClaims();
+            Object nonce = kbClaims.get("nonce");
+            if (nonce != null) {
+                claims.put("nonce", nonce);
+            }
+            Object audience = kbClaims.get("aud");
+            Object expectedAudience = session.payload().get("client_id");
+            if (expectedAudience != null && audience != null && !String.valueOf(expectedAudience).equals(String.valueOf(audience))) {
+                throw new IllegalArgumentException("KB-JWT audience does not match request client_id.");
+            }
+            Object sdHash = kbClaims.get("sd_hash");
+            if (sdHash != null && !String.valueOf(sdHash).equals(sdHash(issuerJwt, parts, disclosureEndExclusive))) {
+                throw new IllegalArgumentException("KB-JWT sd_hash does not match presented disclosures.");
+            }
+        }
+
+        claims.put("_sd_jwt_issuer_claims", SignedJWT.parse(issuerJwt).getJWTClaimsSet().getClaims());
+        return claims;
+    }
+
+    private String sdHash(String issuerJwt, String[] parts, int disclosureEndExclusive) throws Exception {
+        StringBuilder presented = new StringBuilder(issuerJwt).append('~');
+        for (int index = 1; index < disclosureEndExclusive; index++) {
+            if (!parts[index].isBlank()) {
+                presented.append(parts[index]).append('~');
+            }
+        }
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(presented.toString().getBytes(StandardCharsets.US_ASCII));
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
     }
 
     @SuppressWarnings("unchecked")

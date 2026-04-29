@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 @Controller
 public class Oid4vpController {
@@ -61,6 +63,12 @@ public class Oid4vpController {
         return walletLoginService.find(id).orElseThrow(RequestNotFoundException::new).signedRequestObject();
     }
 
+    @GetMapping(value = "/wallet/request.jwt/{state}", produces = "application/oauth-authz-req+jwt")
+    @ResponseBody
+    String walletRequestJwt(@PathVariable String state) {
+        return walletLoginService.findByRequestState(state).orElseThrow(RequestNotFoundException::new).signedRequestObject();
+    }
+
     @GetMapping(value = "/oid4vp/requests/{id}/payload.json", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     Map<String, Object> payload(@PathVariable String id) {
@@ -94,6 +102,27 @@ public class Oid4vpController {
     Map<String, Object> directPostJson(@RequestBody DirectPostRequest post) {
         WalletLoginSession session = walletLoginService.verifyDirectPost(post);
         return response(session);
+    }
+
+    @PostMapping(value = "/wallet/direct_post/{state}", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @ResponseBody
+    ResponseEntity<Map<String, Object>> walletDirectPost(@PathVariable String state, @RequestParam MultiValueMap<String, String> form, HttpServletRequest request) {
+        try {
+            WalletLoginSession session = walletLoginService.verifyEncryptedDirectPost(state, form.getFirst("state"), form.getFirst("response"));
+            if (session.status() != WalletLoginStatus.VERIFIED) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "InvalidVpToken",
+                        "description", session.failureReason() == null ? "PID presentation was not verified." : session.failureReason()));
+            }
+            PidAuthentication authentication = new PidAuthentication(session.id(), session.verifiedClaims());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            request.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, SecurityContextHolder.getContext());
+            Map<String, Object> success = new LinkedHashMap<>();
+            success.put("redirect_uri", null);
+            return ResponseEntity.ok(success);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", "InvalidVpToken", "description", ex.getMessage()));
+        }
     }
 
     private Map<String, Object> response(WalletLoginSession session) {

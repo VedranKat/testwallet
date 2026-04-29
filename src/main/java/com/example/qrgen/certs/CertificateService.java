@@ -71,8 +71,8 @@ public class CertificateService {
     }
 
     private CertificateMaterial generateMaterial(Path certDir) throws Exception {
-        KeyPair rootKeyPair = generateRsaKeyPair();
-        KeyPair clientKeyPair = generateRsaKeyPair();
+        KeyPair rootKeyPair = generateEcKeyPair();
+        KeyPair clientKeyPair = generateEcKeyPair();
 
         X509Certificate rootCert = createRootCertificate(rootKeyPair);
         X509Certificate clientCert = createClientCertificate(clientKeyPair, rootKeyPair, rootCert);
@@ -117,9 +117,9 @@ public class CertificateService {
                 clientKeyPath);
     }
 
-    private KeyPair generateRsaKeyPair() throws Exception {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048, RANDOM);
+    private KeyPair generateEcKeyPair() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+        generator.initialize(new java.security.spec.ECGenParameterSpec("secp256r1"), RANDOM);
         return generator.generateKeyPair();
     }
 
@@ -154,7 +154,7 @@ public class CertificateService {
     }
 
     private X509Certificate sign(JcaX509v3CertificateBuilder builder, KeyPair signerKeyPair) throws Exception {
-        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(signerKeyPair.getPrivate());
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withECDSA").build(signerKeyPair.getPrivate());
         X509CertificateHolder holder = builder.build(signer);
         return new JcaX509CertificateConverter().getCertificate(holder);
     }

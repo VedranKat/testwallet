@@ -16,7 +16,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/oid4vp/direct_post", "/oid4vp/sessions"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/oid4vp/direct_post", "/oid4vp/sessions", "/wallet/direct_post/*"))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
@@ -30,6 +30,8 @@ public class SecurityConfig {
                                 "/oid4vp/sessions/*",
                                 "/oid4vp/sessions/*/qr",
                                 "/oid4vp/sessions/*/status",
+                                "/wallet/request.jwt/*",
+                                "/wallet/direct_post/*",
                                 "/wallet-login",
                                 "/wallet-login/*"
                         ).permitAll()
