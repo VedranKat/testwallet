@@ -11,6 +11,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -79,6 +80,17 @@ public class Oid4vciIssuerService {
                 "grant_types_supported", List.of("authorization_code"),
                 "code_challenge_methods_supported", List.of("S256"),
                 "scopes_supported", List.of(PID_SCOPE));
+    }
+
+    public String credentialOfferUri() {
+        return "openid-credential-offer://?credential_offer_uri=" + encode(baseUrl() + "/credential-offer");
+    }
+
+    public Map<String, Object> credentialOffer() {
+        return Map.of(
+                "credential_issuer", baseUrl(),
+                "credential_configuration_ids", List.of(PID_CONFIGURATION_ID),
+                "grants", Map.of("authorization_code", Map.of("issuer_state", UUID.randomUUID().toString())));
     }
 
     public ParRequest createPar(String clientId, String responseType, String redirectUri, String scope, String state,
@@ -318,6 +330,10 @@ public class Oid4vciIssuerService {
     private String baseUrl() {
         String value = properties.getPublicBaseUrl();
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private String randomUrlValue() {

@@ -2,6 +2,7 @@ package com.example.qrgen.web;
 
 import com.example.qrgen.oid4vci.Oid4vciIssuerService;
 import com.example.qrgen.oid4vci.ParRequest;
+import com.example.qrgen.requests.QrCodeService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +26,11 @@ import java.util.Map;
 public class Oid4vciController {
 
     private final Oid4vciIssuerService issuerService;
+    private final QrCodeService qrCodeService;
 
-    public Oid4vciController(Oid4vciIssuerService issuerService) {
+    public Oid4vciController(Oid4vciIssuerService issuerService, QrCodeService qrCodeService) {
         this.issuerService = issuerService;
+        this.qrCodeService = qrCodeService;
     }
 
     @GetMapping(value = "/.well-known/openid-credential-issuer", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -40,6 +43,25 @@ public class Oid4vciController {
     @ResponseBody
     Map<String, Object> authorizationServerMetadata() {
         return issuerService.authorizationServerMetadata();
+    }
+
+    @GetMapping(value = "/credential-offer", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    Map<String, Object> credentialOffer() {
+        return issuerService.credentialOffer();
+    }
+
+    @GetMapping("/issuer-offer")
+    String issuerOffer(Model model) {
+        model.addAttribute("offerUri", issuerService.credentialOfferUri());
+        model.addAttribute("offerUrl", issuerService.authorizationServerMetadata().get("issuer") + "/credential-offer");
+        return "issuer-offer";
+    }
+
+    @GetMapping(value = "/issuer-offer/qr", produces = MediaType.IMAGE_PNG_VALUE)
+    @ResponseBody
+    byte[] issuerOfferQr() {
+        return qrCodeService.png(issuerService.credentialOfferUri(), 640);
     }
 
     @PostMapping(value = "/par", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

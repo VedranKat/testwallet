@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Issue Demo PID</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="shell">
+    <section class="card">
+        <p class="eyebrow">OID4VCI credential offer</p>
+        <h1>Issue demo PID credential</h1>
+        <p class="muted">Scan this QR with the wallet's PID issuance flow, not the verifier/login scanner.</p>
+
+        <img class="qr" src="/issuer-offer/qr" alt="Credential offer QR code">
+
+        <details>
+            <summary>Credential offer details</summary>
+            <dl class="details">
+                <dt>Offer URI</dt>
+                <dd><code th:text="${offerUri}"></code></dd>
+                <dt>Offer JSON</dt>
+                <dd><code th:text="${offerUrl}"></code></dd>
+            </dl>
+        </details>
+    </section>
+</main>
+</body>
+</html>
