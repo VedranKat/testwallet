@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Approve PID Issuance</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="shell">
+    <section class="card">
+        <p class="eyebrow">OID4VCI demo issuer</p>
+        <h1>Approve PID credential issuance</h1>
+        <p class="muted">The Android wallet requested a demo PID SD-JWT VC credential.</p>
+
+        <dl class="details">
+            <dt>Client</dt>
+            <dd><code th:text="${clientId}"></code></dd>
+            <dt>Scope</dt>
+            <dd><code th:text="${scope}"></code></dd>
+            <dt>State</dt>
+            <dd><code th:text="${state}"></code></dd>
+        </dl>
+
+        <form method="post" th:action="@{/authorize}">
+            <input type="hidden" name="client_id" th:value="${clientId}">
+            <input type="hidden" name="request_uri" th:value="${requestUri}">
+            <button class="button" type="submit">Approve issuance</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>
