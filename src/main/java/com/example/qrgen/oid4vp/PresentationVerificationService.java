@@ -31,7 +31,12 @@ public class PresentationVerificationService {
             return PresentationVerificationResult.failed("Missing vp_token.");
         }
 
-        Map<String, Object> tokenClaims = parseVpToken(post.vpToken(), session);
+        Map<String, Object> tokenClaims;
+        try {
+            tokenClaims = parseVpToken(post.vpToken(), session);
+        } catch (Exception ex) {
+            return PresentationVerificationResult.failed(ex.getMessage());
+        }
         if (tokenClaims.isEmpty()) {
             return PresentationVerificationResult.failed("Could not parse vp_token as DCQL SD-JWT presentation, JSON, or JWT claims.");
         }
@@ -53,27 +58,35 @@ public class PresentationVerificationService {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> parseVpToken(Object vpToken, WalletLoginSession session) {
-        try {
-            if (vpToken instanceof Map<?, ?> map) {
-                Object queryResult = map.get("query_0");
-                if (queryResult instanceof List<?> presentations && !presentations.isEmpty()) {
-                    return parseSdJwtPresentation(String.valueOf(presentations.getFirst()), session);
-                }
-                return new LinkedHashMap<>((Map<String, Object>) map);
+    private Map<String, Object> parseVpToken(Object vpToken, WalletLoginSession session) throws Exception {
+        if (vpToken instanceof Map<?, ?> map) {
+            Object queryResult = map.get("query_0");
+            if (queryResult instanceof List<?> presentations && !presentations.isEmpty()) {
+                return parseSdJwtPresentation(String.valueOf(presentations.getFirst()), session);
             }
-            String serialized = String.valueOf(vpToken);
+            if (queryResult instanceof String presentation) {
+                return parseSdJwtPresentation(presentation, session);
+            }
+            Object nestedToken = map.get("vp_token");
+            if (nestedToken != null) {
+                return parseVpToken(nestedToken, session);
+            }
+            return new LinkedHashMap<>((Map<String, Object>) map);
+        }
+
+        String serialized = String.valueOf(vpToken);
+        if (serialized.trim().startsWith("{")) {
+            Map<String, Object> parsed = objectMapper.readValue(serialized, new TypeReference<>() {
+            });
+            if (parsed.containsKey("query_0") || parsed.containsKey("vp_token")) {
+                return parseVpToken(parsed, session);
+            }
+            return parsed;
+        }
             if (serialized.contains("~")) {
                 return parseSdJwtPresentation(serialized, session);
             }
-            if (serialized.trim().startsWith("{")) {
-                return objectMapper.readValue(serialized, new TypeReference<>() {
-                });
-            }
-            return new LinkedHashMap<>(SignedJWT.parse(serialized).getJWTClaimsSet().getClaims());
-        } catch (Exception ex) {
-            return Map.of();
-        }
+        return new LinkedHashMap<>(SignedJWT.parse(serialized).getJWTClaimsSet().getClaims());
     }
 
     private Map<String, Object> parseSdJwtPresentation(String presentation, WalletLoginSession session) throws Exception {
@@ -107,7 +120,7 @@ public class PresentationVerificationService {
             }
             Object audience = kbClaims.get("aud");
             Object expectedAudience = session.payload().get("client_id");
-            if (expectedAudience != null && audience != null && !String.valueOf(expectedAudience).equals(String.valueOf(audience))) {
+            if (expectedAudience != null && audience != null && !audienceMatches(audience, String.valueOf(expectedAudience))) {
                 throw new IllegalArgumentException("KB-JWT audience does not match request client_id.");
             }
             Object sdHash = kbClaims.get("sd_hash");
@@ -118,6 +131,13 @@ public class PresentationVerificationService {
 
         claims.put("_sd_jwt_issuer_claims", SignedJWT.parse(issuerJwt).getJWTClaimsSet().getClaims());
         return claims;
+    }
+
+    private boolean audienceMatches(Object audience, String expectedAudience) {
+        if (audience instanceof List<?> audiences) {
+            return audiences.stream().anyMatch(value -> expectedAudience.equals(String.valueOf(value)));
+        }
+        return expectedAudience.equals(String.valueOf(audience));
     }
 
     private String sdHash(String issuerJwt, String[] parts, int disclosureEndExclusive) throws Exception {
